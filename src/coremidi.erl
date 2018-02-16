@@ -1,6 +1,9 @@
 -module(coremidi).
 -behaviour(gen_server).
 
+-export([list_devices/0,
+         list_devices/1]).
+
 -export([start_link/1,
          start/1,
          stop/1,
@@ -33,6 +36,68 @@
 
 -define(ECM_DEVICE, "ecm-device").
 -define(ECM_VIRTUALDEVICE, "ecm-virtualdevice").
+-define(ECM_LIST_DEVICES, "ecm-list-devices").
+
+
+list_devices() ->
+    list_devices(true).
+
+list_devices(true) ->
+    case ets:info(?MODULE) of
+        undefined -> list_devices(false);
+        _ ->
+            [{devices, Result}] = ets:lookup(?MODULE, devices),
+
+            {ok, Result}
+
+    end;
+
+list_devices(_) ->
+    case ets:info(?MODULE) of
+        undefined -> ets:new(?MODULE, [named_table, bag, {keypos, 1}]);
+        _ -> ok
+    end,
+
+    {ok, CWD} = file:get_cwd(),
+    PrivDir = filename:join([CWD, code:priv_dir(coremidi)]),
+    Cmd = os:find_executable(filename:join([PrivDir, ?ECM_LIST_DEVICES])),
+    Port = open_port({spawn_executable, Cmd}, [exit_status, binary]),
+
+    case list_devices_run_loop(Port, <<>>) of
+        {ok, RawData} ->
+            try
+                Data = binary_to_list(RawData),
+                {ok, Tokens, _} = erl_scan:string(Data),
+                {ok, [Expr]} = erl_parse:parse_exprs(Tokens),
+                {value, Devices, _} = erl_eval:expr(Expr, []),
+
+                ets:insert(?MODULE, {devices, Devices}),
+
+                {ok, Devices}
+
+            catch
+                _:Reason -> {error, {baddata, RawData, Reason}}
+
+            end;
+
+        Error ->
+            Error
+
+    end.
+
+
+list_devices_run_loop(Port, Data) ->
+    receive
+        {Port, {data, NewData}} ->
+            list_devices_run_loop(Port, <<Data/binary, NewData/binary>>);
+
+        {Port, {exit_status, 0}} ->
+            {ok, Data};
+
+        {Port, {exit_status, Status}} ->
+            {error, {exit_status, Status}}
+
+    end.
 
 
 start_link(Args) ->
