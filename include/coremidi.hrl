@@ -1,0 +1,1 @@
+-define(ECM_DEFAULT_TIMEOUT, 60000).
