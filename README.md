@@ -3,9 +3,11 @@ Erlang wrapper library for Core MIDI.
 
 ```erlang
 test() ->
+    application:ensure_all_started(coremidi),
+
     {ok, Devices} = coremidi:list_devices(),
 
-    {ok, Con} = coremidi:start_link([{device, "My MIDI Device"}, {entity, 0}]),
+    {ok, Con} = coremidi:start_link([{device, "My MIDI Device"}, {entity, {0, 0}}]),
 
 
     % blocking recv
