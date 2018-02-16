@@ -1,0 +1,5 @@
+{application, coremidi,
+ [{description, "Erlang Core MIDI"},
+  {vsn, "0.1"},
+  {modules, [coremidi]},
+  {applications, [kernel, stdlib, sasl, lager]}]}.
