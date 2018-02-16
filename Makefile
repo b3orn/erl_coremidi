@@ -18,7 +18,7 @@ deps:
 
 
 clean:
-	-rm priv/ecm-device priv/ecm-virtualdevice
+	-rm priv/ecm-device priv/ecm-virtualdevice priv/ecm-list-devices
 
 
 priv/%: c_src/%.c
