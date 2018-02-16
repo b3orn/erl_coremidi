@@ -27,7 +27,8 @@
                 restart,
                 executable,
                 device,
-                entity,
+                source,
+                dest,
                 data,
                 subscribers}).
 
@@ -140,7 +141,17 @@ init(Args) ->
     lager:debug("initialized with ~p", [Args]),
 
     {device, Device} = lists:keyfind(device, 1, Args),
-    {entity, Entity} = lists:keyfind(entity, 1, Args),
+
+    case lists:keyfind(entity, 1, Args) of
+        {entity, Entity} ->
+            Source = Entity,
+            Dest = Entity;
+
+        _ ->
+            {src, Source} = lists:keyfind(src, 1, Args),
+            {dest, Dest} = lists:keyfind(dest, 1, Args)
+
+    end,
 
     {ok, CWD} = file:get_cwd(),
     PrivDir = filename:join([CWD, code:priv_dir(coremidi)]),
@@ -166,7 +177,8 @@ init(Args) ->
     {ok, State} = start_port(#state{restart = Restart,
                                     executable = Executable,
                                     device = Device,
-                                    entity = Entity,
+                                    source = Source,
+                                    dest = Dest,
                                     data = <<>>,
                                     subscribers = Subs}),
 
@@ -254,11 +266,16 @@ code_change(_OldVsn, State, _Extra) ->
 
 
 start_port(State) ->
-    Device = State#state.device,
-    Entity = State#state.entity,
     Executable = State#state.executable,
+    Device = State#state.device,
+    {SrcEntity, SrcEndpoint} = State#state.source,
+    {DstEntity, DstEndpoint} = State#state.dest,
 
-    PortArgs = [Device, lists:flatten(io_lib:format("~p", [Entity]))],
+    PortArgs = [Device,
+                integer_to_list(SrcEntity),
+                integer_to_list(SrcEndpoint),
+                integer_to_list(DstEntity),
+                integer_to_list(DstEndpoint)],
     Port = open_port({spawn_executable, Executable},
                      [{packet, 2}, binary, {args, PortArgs}]),
 

@@ -115,7 +115,7 @@ int main(int argc, char **argv) {
     OSStatus status;
     MIDIClientRef client;
     MIDIDeviceRef device;
-    MIDIEntityRef entity;
+    MIDIEntityRef src_entity, dst_entity;
     MIDIEndpointRef source;
     MIDIEndpointRef destination;
     MIDIPortRef sourcePort;
@@ -126,7 +126,9 @@ int main(int argc, char **argv) {
     int len;
     char cmd_buf[100];
 
-    if (argc < 3) {
+    if (argc < 6) {
+        /* ecm-device DEVICE_NAME SRC_ENTITY SRC_ENDPOINT DST_ENTITY DST_ENDPOINT */
+
         return EXIT_FAILURE;
     }
 
@@ -149,9 +151,10 @@ int main(int argc, char **argv) {
 
     CFRelease(deviceName);
 
-    entity = MIDIDeviceGetEntity(device, atoi(argv[2]));
-    source = MIDIEntityGetSource(entity, 0);
-    destination = MIDIEntityGetDestination(entity, 0);
+    src_entity = MIDIDeviceGetEntity(device, atoi(argv[2]));
+    dst_entity = MIDIDeviceGetEntity(device, atoi(argv[4]));
+    source = MIDIEntityGetSource(src_entity, atoi(argv[3]));
+    destination = MIDIEntityGetDestination(dst_entity, atoi(argv[5]));
 
     status = MIDIInputPortCreate(
         client,
